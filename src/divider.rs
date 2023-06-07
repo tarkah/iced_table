@@ -6,12 +6,12 @@ use iced_core::{renderer, Clipboard, Shell};
 use crate::style::{self, StyleSheet};
 
 #[derive(Clone, Copy, Debug, Default)]
-pub struct State {
+struct State {
     drag_origin: Option<Point>,
     is_divider_hovered: bool,
 }
 
-pub struct Divider<'a, Message, Renderer>
+pub(crate) struct Divider<'a, Message, Renderer>
 where
     Renderer: renderer::Renderer,
     Renderer::Theme: style::StyleSheet,

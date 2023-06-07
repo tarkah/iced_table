@@ -1,11 +1,17 @@
 use iced_widget::container;
 
+/// A set of rules that dictate the styling of a [`Table`](crate::Table).
 pub trait StyleSheet {
+    /// The supported style of the [`StyleSheet`].
     type Style: Default + Clone;
 
+    /// The header [`Appearance`](iced_widget::container::Appearance) of the [`StyleSheet`].
     fn header(&self, style: &Self::Style) -> container::Appearance;
+    /// The footer [`Appearance`](iced_widget::container::Appearance) of the [`StyleSheet`].
     fn footer(&self, style: &Self::Style) -> container::Appearance;
+    /// The row [`Appearance`](iced_widget::container::Appearance) of the [`StyleSheet`].
     fn row(&self, style: &Self::Style, index: usize) -> container::Appearance;
+    /// The divider [`Appearance`](iced_widget::container::Appearance) of the [`StyleSheet`].
     fn divider(&self, style: &Self::Style, hovered: bool) -> container::Appearance;
 }
 

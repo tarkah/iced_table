@@ -1,15 +1,25 @@
+//! A table widget for iced
+#![deny(missing_debug_implementations, missing_docs)]
+pub use style::StyleSheet;
 pub use table::{table, Table};
 
 mod divider;
 mod style;
 
 pub mod table {
+    //! Display rows of data into columns
     use iced_core::{Element, Length, Padding};
     use iced_widget::{column, container, row, scrollable, Space};
 
     use super::divider::Divider;
     use super::style;
 
+    /// Creates a new [`Table`] with the provided [`Column`] definitions
+    /// and [`Row`](Column::Row) data.
+    ///
+    /// `on_sync` is needed to keep the header & footer scrollables in sync with
+    /// the body scrollable. It is up to the consumer to emit a [`scroll_to`](iced_widget::scrollable::scroll_to) operation
+    /// from `update` when this message is received.
     pub fn table<'a, Column, Row, Message, Renderer>(
         header: scrollable::Id,
         body: scrollable::Id,
@@ -39,11 +49,15 @@ pub mod table {
         }
     }
 
+    /// Defines what a column looks like for each [`Row`](Self::Row) of data.
     pub trait Column<'a, 'b, Message, Renderer> {
+        /// A row of data.
         type Row;
 
+        /// Define the header [`Element`] for this column.
         fn header(&'b self, col_index: usize) -> Element<'a, Message, Renderer>;
 
+        /// Define the cell [`Element`] for this column.
         fn cell(
             &'b self,
             col_index: usize,
@@ -51,6 +65,7 @@ pub mod table {
             row: &'b Self::Row,
         ) -> Element<'a, Message, Renderer>;
 
+        /// Define the footer [`Element`] for this column.
         fn footer(
             &'b self,
             _col_index: usize,
@@ -59,11 +74,15 @@ pub mod table {
             None
         }
 
+        /// Return the fixed width for this column.
         fn width(&self) -> f32;
 
+        /// Return the offset of an on-going resize of this column.
         fn resize_offset(&self) -> Option<f32>;
     }
 
+    /// An element to display rows of data into columns.
+    #[allow(missing_debug_implementations)]
     pub struct Table<'a, Column, Row, Message, Renderer>
     where
         Renderer: iced_core::Renderer + 'a,
@@ -91,6 +110,14 @@ pub mod table {
         Renderer: iced_core::Renderer + 'a,
         Renderer::Theme: style::StyleSheet + container::StyleSheet,
     {
+        /// Sets the message that will be produced when a [`Column`] is resizing. Setting this
+        /// will enable the resizing interaction.
+        ///
+        /// `on_drag` will emit a message during an on-going resize. It is up to the consumer to return
+        /// this value for the associated column in [`Column::resize_offset`].
+        ///
+        /// `on_release` is emited when the resize is finished. It is up to the consumer to apply the last
+        /// `on_drag` offset to the column's stored width.
         pub fn on_column_resize(
             self,
             on_drag: fn(usize, f32) -> Message,
@@ -103,6 +130,7 @@ pub mod table {
             }
         }
 
+        /// Show the footer returned by [`Column::footer`].
         pub fn footer(self, footer: scrollable::Id) -> Self {
             Self {
                 footer: Some(footer),
@@ -110,10 +138,15 @@ pub mod table {
             }
         }
 
+        /// Sets the minimum width of table.
+        ///
+        /// This is useful to use in conjuction with [`responsive`](iced_widget::responsive) to ensure
+        /// the table always fills the width of it's parent container.
         pub fn min_width(self, min_width: f32) -> Self {
             Self { min_width, ..self }
         }
 
+        /// Sets the minimum width a column can be resized to.
         pub fn min_column_width(self, min_column_width: f32) -> Self {
             Self {
                 min_column_width,
@@ -121,6 +154,7 @@ pub mod table {
             }
         }
 
+        /// Sets the width of the column dividers.
         pub fn divider_width(self, divider_width: f32) -> Self {
             Self {
                 divider_width,
@@ -128,6 +162,7 @@ pub mod table {
             }
         }
 
+        /// Sets the [`Padding`] used inside each cell of the [`Table`].
         pub fn cell_padding(self, cell_padding: impl Into<Padding>) -> Self {
             Self {
                 cell_padding: cell_padding.into(),
@@ -135,6 +170,7 @@ pub mod table {
             }
         }
 
+        /// Sets the style variant of this [`Table`].
         pub fn style(
             self,
             style: impl Into<<Renderer::Theme as style::StyleSheet>::Style>,
@@ -145,6 +181,7 @@ pub mod table {
             }
         }
 
+        ///  Sets the [`Properties`](iced_widget::scrollable::Properties) used for the table's body scrollable.
         pub fn scrollable_properties(self, f: impl Fn() -> scrollable::Properties + 'a) -> Self {
             Self {
                 scrollable_properties: Box::new(f),
