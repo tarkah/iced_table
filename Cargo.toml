@@ -1,0 +1,22 @@
+[package]
+name = "iced_table"
+version = "0.1.0"
+edition = "2021"
+authors = ["tarkah <admin@tarkah.dev>"]
+description = "A table widget for Iced"
+license = "MIT"
+repository = "https://github.com/tarkah/iced_table"
+
+[workspace]
+default-members = [
+  "./example"
+]
+members = [
+  ".",
+  "./example",
+]
+
+[dependencies]
+iced_core = { git = "https://github.com/iced-rs/iced", rev = "c15f1b5f6575792cc89bb5fba2e613428397e46a" }
+iced_style = { git = "https://github.com/iced-rs/iced", rev = "c15f1b5f6575792cc89bb5fba2e613428397e46a" }
+iced_widget = { git = "https://github.com/iced-rs/iced", rev = "c15f1b5f6575792cc89bb5fba2e613428397e46a" }
