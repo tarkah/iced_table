@@ -237,18 +237,16 @@ pub mod table {
                 style.clone(),
             ))
             .id(header)
-            .horizontal_scroll(
-                scrollable::Properties::new()
+            .direction(scrollable::Direction::Both {
+                vertical: scrollable::Properties::new()
                     .width(0)
                     .margin(0)
                     .scroller_width(0),
-            )
-            .vertical_scroll(
-                scrollable::Properties::new()
+                horizontal: scrollable::Properties::new()
                     .width(0)
                     .margin(0)
                     .scroller_width(0),
-            );
+            });
 
             let body = scrollable(column(
                 rows.iter()
@@ -284,8 +282,10 @@ pub mod table {
 
                 (on_sync)(scrollable::AbsoluteOffset { y: 0.0, ..offset })
             })
-            .horizontal_scroll((scrollable_properties)())
-            .vertical_scroll((scrollable_properties)())
+            .direction(scrollable::Direction::Both {
+                horizontal: (scrollable_properties)(),
+                vertical: (scrollable_properties)(),
+            })
             .height(Length::Fill);
 
             let footer = footer.map(|footer| {
@@ -311,18 +311,16 @@ pub mod table {
                     style,
                 ))
                 .id(footer)
-                .horizontal_scroll(
-                    scrollable::Properties::new()
+                .direction(scrollable::Direction::Both {
+                    vertical: scrollable::Properties::new()
                         .width(0)
                         .margin(0)
                         .scroller_width(0),
-                )
-                .vertical_scroll(
-                    scrollable::Properties::new()
+                    horizontal: scrollable::Properties::new()
                         .width(0)
                         .margin(0)
                         .scroller_width(0),
-                )
+                })
             });
 
             let mut column = column![header, body];

@@ -1,4 +1,5 @@
 use iced_core::layout::{self, Layout};
+use iced_core::mouse::Cursor;
 use iced_core::widget::{self, Widget};
 use iced_core::{event, mouse, overlay, Color, Element, Length, Point, Rectangle};
 use iced_core::{renderer, Clipboard, Shell};
@@ -52,20 +53,20 @@ where
         }
     }
 
-    fn is_divider_hovered(&self, bounds: Rectangle, cursor_position: Point) -> bool {
+    fn divider_hover_bounds(&self, bounds: Rectangle) -> Rectangle {
         let mut bounds = self.divider_bounds(bounds);
         // TODO: Configurable
         bounds.x -= 5.0;
         bounds.width += 10.0;
 
-        bounds.contains(cursor_position)
+        bounds
     }
 
-    fn is_content_hovered(&self, mut bounds: Rectangle, cursor_position: Point) -> bool {
+    fn is_content_hovered(&self, mut bounds: Rectangle, cursor: Cursor) -> bool {
         // Ignore left edge to not conflict with other dividers
         bounds.x = (bounds.x + 5.0).min(bounds.x + bounds.width - 5.0);
 
-        bounds.contains(cursor_position)
+        cursor.is_over(bounds)
     }
 }
 
@@ -117,20 +118,23 @@ where
         tree: &mut widget::Tree,
         event: event::Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
     ) -> event::Status {
         let state = tree.state.downcast_mut::<State>();
 
-        state.is_divider_hovered = self.is_divider_hovered(layout.bounds(), cursor_position);
+        let divider_hover_bounds = self.divider_hover_bounds(layout.bounds());
+
+        state.is_divider_hovered = cursor.is_over(divider_hover_bounds);
 
         if let event::Event::Mouse(event) = event {
             match event {
                 mouse::Event::ButtonPressed(mouse::Button::Left) => {
-                    if state.is_divider_hovered {
-                        state.drag_origin = Some(cursor_position);
+                    if let Some(origin) = cursor.position_over(divider_hover_bounds) {
+                        state.drag_origin = Some(origin);
                         return event::Status::Captured;
                     }
                 }
@@ -140,10 +144,12 @@ where
                         return event::Status::Captured;
                     }
                 }
-                mouse::Event::CursorMoved { .. } if cursor_position != Point::new(-1.0, -1.0) => {
-                    if let Some(origin) = state.drag_origin {
-                        shell.publish((self.on_drag)((cursor_position - origin).x));
-                        return event::Status::Captured;
+                mouse::Event::CursorMoved { .. } => {
+                    if let Some(position) = cursor.position() {
+                        if let Some(origin) = state.drag_origin {
+                            shell.publish((self.on_drag)((position - origin).x));
+                            return event::Status::Captured;
+                        }
                     }
                 }
                 _ => {}
@@ -154,10 +160,11 @@ where
             &mut tree.children[0],
             event,
             layout.children().next().unwrap(),
-            cursor_position,
+            cursor,
             renderer,
             clipboard,
             shell,
+            viewport,
         )
     }
 
@@ -165,7 +172,7 @@ where
         &self,
         tree: &widget::Tree,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
@@ -177,7 +184,7 @@ where
             self.content.as_widget().mouse_interaction(
                 &tree.children[0],
                 layout.children().next().unwrap(),
-                cursor_position,
+                cursor,
                 viewport,
                 renderer,
             )
@@ -191,7 +198,7 @@ where
         theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: Cursor,
         viewport: &Rectangle,
     ) {
         let state = tree.state.downcast_ref::<State>();
@@ -202,11 +209,11 @@ where
             theme,
             style,
             layout.children().next().unwrap(),
-            cursor_position,
+            cursor,
             viewport,
         );
 
-        if self.is_content_hovered(layout.bounds(), cursor_position)
+        if self.is_content_hovered(layout.bounds(), cursor)
             || state.is_divider_hovered
             || state.drag_origin.is_some()
         {

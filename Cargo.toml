@@ -17,6 +17,6 @@ members = [
 ]
 
 [dependencies]
-iced_core = { git = "https://github.com/iced-rs/iced", rev = "c15f1b5f6575792cc89bb5fba2e613428397e46a" }
-iced_style = { git = "https://github.com/iced-rs/iced", rev = "c15f1b5f6575792cc89bb5fba2e613428397e46a" }
-iced_widget = { git = "https://github.com/iced-rs/iced", rev = "c15f1b5f6575792cc89bb5fba2e613428397e46a", features = ["lazy"] }
+iced_core = "0.10"
+iced_style = "0.9"
+iced_widget = "0.1"

@@ -5,4 +5,4 @@ edition = "2021"
 
 [dependencies]
 iced_table = { path = "../" }
-iced = { git = "https://github.com/iced-rs/iced", rev = "c15f1b5f6575792cc89bb5fba2e613428397e46a" ,features = ["lazy"] }
+iced = { version = "0.10", features = ["lazy"] }

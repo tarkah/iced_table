@@ -59,7 +59,7 @@ impl StyleSheet for iced_style::Theme {
 }
 
 pub(crate) mod wrapper {
-    use iced_core::{Color, Element, Widget};
+    use iced_core::{mouse::Cursor, Color, Element, Widget};
     use iced_widget::container;
 
     use super::StyleSheet;
@@ -178,7 +178,7 @@ pub(crate) mod wrapper {
             theme: &<Renderer as iced_core::Renderer>::Theme,
             style: &iced_core::renderer::Style,
             layout: iced_core::Layout<'_>,
-            cursor_position: iced_core::Point,
+            cursor: Cursor,
             viewport: &iced_core::Rectangle,
         ) {
             let appearance = self.target.appearance::<Renderer>(theme, &self.style);
@@ -200,15 +200,9 @@ pub(crate) mod wrapper {
                 .map(|text_color| iced_core::renderer::Style { text_color })
                 .unwrap_or(*style);
 
-            self.content.as_widget().draw(
-                state,
-                renderer,
-                theme,
-                &style,
-                layout,
-                cursor_position,
-                viewport,
-            )
+            self.content
+                .as_widget()
+                .draw(state, renderer, theme, &style, layout, cursor, viewport)
         }
 
         fn tag(&self) -> iced_core::widget::tree::Tag {
@@ -244,19 +238,14 @@ pub(crate) mod wrapper {
             state: &mut iced_core::widget::Tree,
             event: iced_core::Event,
             layout: iced_core::Layout<'_>,
-            cursor_position: iced_core::Point,
+            cursor: Cursor,
             renderer: &Renderer,
             clipboard: &mut dyn iced_core::Clipboard,
             shell: &mut iced_core::Shell<'_, Message>,
+            viewport: &iced_core::Rectangle,
         ) -> iced_core::event::Status {
             self.content.as_widget_mut().on_event(
-                state,
-                event,
-                layout,
-                cursor_position,
-                renderer,
-                clipboard,
-                shell,
+                state, event, layout, cursor, renderer, clipboard, shell, viewport,
             )
         }
 
@@ -264,17 +253,13 @@ pub(crate) mod wrapper {
             &self,
             state: &iced_core::widget::Tree,
             layout: iced_core::Layout<'_>,
-            cursor_position: iced_core::Point,
+            cursor: Cursor,
             viewport: &iced_core::Rectangle,
             renderer: &Renderer,
         ) -> iced_core::mouse::Interaction {
-            self.content.as_widget().mouse_interaction(
-                state,
-                layout,
-                cursor_position,
-                viewport,
-                renderer,
-            )
+            self.content
+                .as_widget()
+                .mouse_interaction(state, layout, cursor, viewport, renderer)
         }
 
         fn overlay<'b>(
