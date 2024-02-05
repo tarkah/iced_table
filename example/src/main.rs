@@ -267,10 +267,10 @@ impl fmt::Display for Category {
     }
 }
 
-impl<'a, 'b> table::Column<'a, 'b, Message, Renderer> for Column {
+impl<'a> table::Column<'a, Message, Renderer> for Column {
     type Row = Row;
 
-    fn header(&'b self, _col_index: usize) -> Element<'a, Message> {
+    fn header(&'a self, _col_index: usize) -> Element<'a, Message> {
         let content = match self.kind {
             ColumnKind::Index => "Index",
             ColumnKind::Category => "Category",
@@ -283,10 +283,10 @@ impl<'a, 'b> table::Column<'a, 'b, Message, Renderer> for Column {
     }
 
     fn cell(
-        &'b self,
+        &'a self,
         _col_index: usize,
         row_index: usize,
-        row: &'b Self::Row,
+        row: &'a Self::Row,
     ) -> Element<'a, Message> {
         let content: Element<_> = match self.kind {
             ColumnKind::Index => text(row_index).into(),
@@ -316,7 +316,7 @@ impl<'a, 'b> table::Column<'a, 'b, Message, Renderer> for Column {
             .into()
     }
 
-    fn footer(&'b self, _col_index: usize, rows: &'b [Self::Row]) -> Option<Element<'a, Message>> {
+    fn footer(&'a self, _col_index: usize, rows: &'a [Self::Row]) -> Option<Element<'a, Message>> {
         let content = if matches!(self.kind, ColumnKind::Enabled) {
             let total_enabled = rows.iter().filter(|row| row.is_enabled).count();
 

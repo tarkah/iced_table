@@ -50,26 +50,26 @@ pub mod table {
     }
 
     /// Defines what a column looks like for each [`Row`](Self::Row) of data.
-    pub trait Column<'a, 'b, Message, Renderer> {
+    pub trait Column<'a, Message, Renderer> {
         /// A row of data.
         type Row;
 
         /// Define the header [`Element`] for this column.
-        fn header(&'b self, col_index: usize) -> Element<'a, Message, Renderer>;
+        fn header(&'a self, col_index: usize) -> Element<'a, Message, Renderer>;
 
         /// Define the cell [`Element`] for this column.
         fn cell(
-            &'b self,
+            &'a self,
             col_index: usize,
             row_index: usize,
-            row: &'b Self::Row,
+            row: &'a Self::Row,
         ) -> Element<'a, Message, Renderer>;
 
         /// Define the footer [`Element`] for this column.
         fn footer(
-            &'b self,
+            &'a self,
             _col_index: usize,
-            _rows: &'b [Self::Row],
+            _rows: &'a [Self::Row],
         ) -> Option<Element<'a, Message, Renderer>> {
             None
         }
@@ -190,15 +190,15 @@ pub mod table {
         }
     }
 
-    impl<'a, 'b, Column, Row, Message, Renderer> From<Table<'b, Column, Row, Message, Renderer>>
+    impl<'a, Column, Row, Message, Renderer> From<Table<'a, Column, Row, Message, Renderer>>
         for Element<'a, Message, Renderer>
     where
         Renderer: iced_core::Renderer + 'a,
         Renderer::Theme: style::StyleSheet + container::StyleSheet + scrollable::StyleSheet,
-        Column: self::Column<'a, 'b, Message, Renderer, Row = Row>,
+        Column: self::Column<'a, Message, Renderer, Row = Row>,
         Message: 'a + Clone,
     {
-        fn from(table: Table<'b, Column, Row, Message, Renderer>) -> Self {
+        fn from(table: Table<'a, Column, Row, Message, Renderer>) -> Self {
             let Table {
                 header,
                 body,
@@ -333,9 +333,9 @@ pub mod table {
         }
     }
 
-    fn header_container<'a, 'b, Column, Row, Message, Renderer>(
+    fn header_container<'a, Column, Row, Message, Renderer>(
         index: usize,
-        column: &'b Column,
+        column: &'a Column,
         on_drag: Option<fn(usize, f32) -> Message>,
         on_release: Option<Message>,
         min_column_width: f32,
@@ -346,7 +346,7 @@ pub mod table {
     where
         Renderer: iced_core::Renderer + 'a,
         Renderer::Theme: style::StyleSheet + container::StyleSheet,
-        Column: self::Column<'a, 'b, Message, Renderer, Row = Row>,
+        Column: self::Column<'a, Message, Renderer, Row = Row>,
         Message: 'a + Clone,
     {
         let content = container(column.header(index))
@@ -366,11 +366,11 @@ pub mod table {
         )
     }
 
-    fn body_container<'a, 'b, Column, Row, Message, Renderer>(
+    fn body_container<'a, Column, Row, Message, Renderer>(
         col_index: usize,
         row_index: usize,
-        column: &'b Column,
-        row: &'b Row,
+        column: &'a Column,
+        row: &'a Row,
         min_column_width: f32,
         divider_width: f32,
         cell_padding: Padding,
@@ -378,7 +378,7 @@ pub mod table {
     where
         Renderer: iced_core::Renderer + 'a,
         Renderer::Theme: style::StyleSheet + container::StyleSheet,
-        Column: self::Column<'a, 'b, Message, Renderer, Row = Row>,
+        Column: self::Column<'a, Message, Renderer, Row = Row>,
         Message: 'a + Clone,
     {
         let width = column.width() + column.resize_offset().unwrap_or_default();
@@ -394,10 +394,10 @@ pub mod table {
             .into()
     }
 
-    fn footer_container<'a, 'b, Column, Row, Message, Renderer>(
+    fn footer_container<'a, Column, Row, Message, Renderer>(
         index: usize,
-        column: &'b Column,
-        rows: &'b [Row],
+        column: &'a Column,
+        rows: &'a [Row],
         on_drag: Option<fn(usize, f32) -> Message>,
         on_release: Option<Message>,
         min_column_width: f32,
@@ -408,7 +408,7 @@ pub mod table {
     where
         Renderer: iced_core::Renderer + 'a,
         Renderer::Theme: style::StyleSheet + container::StyleSheet,
-        Column: self::Column<'a, 'b, Message, Renderer, Row = Row>,
+        Column: self::Column<'a, Message, Renderer, Row = Row>,
         Message: 'a + Clone,
     {
         let content = if let Some(footer) = column.footer(index, rows) {
@@ -433,9 +433,9 @@ pub mod table {
         )
     }
 
-    fn with_divider<'a, 'b, Column, Row, Message, Renderer>(
+    fn with_divider<'a, Column, Row, Message, Renderer>(
         index: usize,
-        column: &'b Column,
+        column: &'a Column,
         content: Element<'a, Message, Renderer>,
         on_drag: Option<fn(usize, f32) -> Message>,
         on_release: Option<Message>,
@@ -446,7 +446,7 @@ pub mod table {
     where
         Renderer: iced_core::Renderer + 'a,
         Renderer::Theme: style::StyleSheet + container::StyleSheet,
-        Column: self::Column<'a, 'b, Message, Renderer, Row = Row>,
+        Column: self::Column<'a, Message, Renderer, Row = Row>,
         Message: 'a + Clone,
     {
         let width =
@@ -476,15 +476,15 @@ pub mod table {
     }
 
     // Used to enforce "min_width"
-    fn dummy_container<'a, 'b, Column, Row, Message, Renderer>(
-        columns: &'b [Column],
+    fn dummy_container<'a, Column, Row, Message, Renderer>(
+        columns: &'a [Column],
         min_width: f32,
         min_column_width: f32,
     ) -> Option<Element<'a, Message, Renderer>>
     where
         Renderer: iced_core::Renderer + 'a,
         Renderer::Theme: style::StyleSheet + container::StyleSheet,
-        Column: self::Column<'a, 'b, Message, Renderer, Row = Row>,
+        Column: self::Column<'a, Message, Renderer, Row = Row>,
         Message: 'a + Clone,
     {
         let total_width: f32 = columns
