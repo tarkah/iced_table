@@ -1,6 +1,9 @@
 use std::fmt;
 
-use iced::widget::{checkbox, column, container, horizontal_space, responsive, scrollable, text};
+use iced::widget::{
+    button, checkbox, column, container, horizontal_space, pick_list, responsive, scrollable, text,
+    text_input,
+};
 use iced::{Application, Command, Element, Length, Renderer, Theme};
 use iced_table::table;
 
@@ -9,7 +12,7 @@ fn main() {
 }
 
 #[derive(Debug, Clone)]
-pub enum Message {
+enum Message {
     SyncHeader(scrollable::AbsoluteOffset),
     Resizing(usize, f32),
     Resized,
@@ -17,11 +20,15 @@ pub enum Message {
     FooterEnabled(bool),
     MinWidthEnabled(bool),
     DarkThemeEnabled(bool),
+    Notes(usize, String),
+    Category(usize, Category),
+    Enabled(usize, bool),
+    Delete(usize),
 }
 
-pub struct App {
+struct App {
     columns: Vec<Column>,
-    rows: Vec<usize>,
+    rows: Vec<Row>,
     header: scrollable::Id,
     body: scrollable::Id,
     footer: scrollable::Id,
@@ -35,13 +42,13 @@ impl Default for App {
     fn default() -> Self {
         Self {
             columns: vec![
-                Column::new(Letter::A),
-                Column::new(Letter::B),
-                Column::new(Letter::C),
-                Column::new(Letter::D),
-                Column::new(Letter::E),
+                Column::new(ColumnKind::Index),
+                Column::new(ColumnKind::Category),
+                Column::new(ColumnKind::Enabled),
+                Column::new(ColumnKind::Notes),
+                Column::new(ColumnKind::Delete),
             ],
-            rows: (1..=50).collect(),
+            rows: (0..50).map(Row::generate).collect(),
             header: scrollable::Id::unique(),
             body: scrollable::Id::unique(),
             footer: scrollable::Id::unique(),
@@ -98,6 +105,24 @@ impl Application for App {
                 } else {
                     self.theme = Theme::Light;
                 }
+            }
+            Message::Category(index, category) => {
+                if let Some(row) = self.rows.get_mut(index) {
+                    row.category = category;
+                }
+            }
+            Message::Enabled(index, is_enabled) => {
+                if let Some(row) = self.rows.get_mut(index) {
+                    row.is_enabled = is_enabled;
+                }
+            }
+            Message::Notes(index, notes) => {
+                if let Some(row) = self.rows.get_mut(index) {
+                    row.notes = notes;
+                }
+            }
+            Message::Delete(index) => {
+                self.rows.remove(index);
             }
         }
 
@@ -159,22 +184,65 @@ impl Application for App {
 }
 
 struct Column {
-    letter: Letter,
+    kind: ColumnKind,
     width: f32,
     resize_offset: Option<f32>,
 }
 
 impl Column {
-    fn new(letter: Letter) -> Self {
+    fn new(kind: ColumnKind) -> Self {
+        let width = match kind {
+            ColumnKind::Index => 60.0,
+            ColumnKind::Category => 100.0,
+            ColumnKind::Enabled => 155.0,
+            ColumnKind::Notes => 400.0,
+            ColumnKind::Delete => 100.0,
+        };
+
         Self {
-            letter,
-            width: 100.0,
+            kind,
+            width,
             resize_offset: None,
         }
     }
 }
 
-enum Letter {
+enum ColumnKind {
+    Index,
+    Category,
+    Enabled,
+    Notes,
+    Delete,
+}
+
+struct Row {
+    notes: String,
+    category: Category,
+    is_enabled: bool,
+}
+
+impl Row {
+    fn generate(index: usize) -> Self {
+        let category = match index % 5 {
+            0 => Category::A,
+            1 => Category::B,
+            2 => Category::C,
+            3 => Category::D,
+            4 => Category::E,
+            _ => unreachable!(),
+        };
+        let is_enabled = index % 5 < 4;
+
+        Self {
+            notes: String::new(),
+            category,
+            is_enabled,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Category {
     A,
     B,
     C,
@@ -182,44 +250,77 @@ enum Letter {
     E,
 }
 
-impl fmt::Display for Letter {
+impl Category {
+    const ALL: &'static [Self] = &[Self::A, Self::B, Self::C, Self::D, Self::E];
+}
+
+impl fmt::Display for Category {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Letter::A => "A",
-            Letter::B => "B",
-            Letter::C => "C",
-            Letter::D => "D",
-            Letter::E => "E",
+            Category::A => "A",
+            Category::B => "B",
+            Category::C => "C",
+            Category::D => "D",
+            Category::E => "E",
         }
         .fmt(f)
     }
 }
 
 impl<'a, 'b> table::Column<'a, 'b, Message, Renderer> for Column {
-    type Row = usize;
+    type Row = Row;
 
     fn header(&'b self, _col_index: usize) -> Element<'a, Message> {
-        container(text(format!("Column {}", self.letter)))
-            .height(24)
-            .center_y()
-            .into()
+        let content = match self.kind {
+            ColumnKind::Index => "Index",
+            ColumnKind::Category => "Category",
+            ColumnKind::Enabled => "Enabled",
+            ColumnKind::Notes => "Notes",
+            ColumnKind::Delete => "",
+        };
+
+        container(text(content)).height(24).center_y().into()
     }
 
     fn cell(
         &'b self,
         _col_index: usize,
         row_index: usize,
-        _row: &'b Self::Row,
+        row: &'b Self::Row,
     ) -> Element<'a, Message> {
-        container(text(format!("Cell {}{row_index}", self.letter)))
+        let content: Element<_> = match self.kind {
+            ColumnKind::Index => text(row_index).into(),
+            ColumnKind::Category => pick_list(Category::ALL, Some(row.category), move |category| {
+                Message::Category(row_index, category)
+            })
+            .into(),
+            ColumnKind::Enabled => checkbox("", row.is_enabled, move |enabled| {
+                Message::Enabled(row_index, enabled)
+            })
+            .into(),
+            ColumnKind::Notes => text_input("", &row.notes)
+                .padding(2)
+                .on_input(move |notes| Message::Notes(row_index, notes))
+                .width(Length::Fill)
+                .into(),
+            ColumnKind::Delete => button(text("Delete"))
+                .padding(2)
+                .on_press(Message::Delete(row_index))
+                .into(),
+        };
+
+        container(content)
+            .width(Length::Fill)
             .height(24)
             .center_y()
             .into()
     }
 
     fn footer(&'b self, _col_index: usize, rows: &'b [Self::Row]) -> Option<Element<'a, Message>> {
-        let content = if matches!(self.letter, Letter::C) {
-            Element::from(text(format!("Count: {}", rows.len())))
+        let content = if matches!(self.kind, ColumnKind::Enabled) {
+            let total_enabled = rows.iter().filter(|row| row.is_enabled).count();
+
+            Element::from(text(format!("Total Enabled: {total_enabled}")))
         } else {
             horizontal_space(Length::Fill).into()
         };
