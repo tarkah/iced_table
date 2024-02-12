@@ -20,16 +20,15 @@ pub mod table {
     /// `on_sync` is needed to keep the header & footer scrollables in sync with
     /// the body scrollable. It is up to the consumer to emit a [`scroll_to`](iced_widget::scrollable::scroll_to) operation
     /// from `update` when this message is received.
-    pub fn table<'a, Column, Row, Message, Renderer>(
+    pub fn table<'a, Column, Row, Message, Theme>(
         header: scrollable::Id,
         body: scrollable::Id,
         columns: &'a [Column],
         rows: &'a [Row],
         on_sync: fn(scrollable::AbsoluteOffset) -> Message,
-    ) -> Table<'a, Column, Row, Message, Renderer>
+    ) -> Table<'a, Column, Row, Message, Theme>
     where
-        Renderer: iced_core::Renderer + 'a,
-        Renderer::Theme: style::StyleSheet + container::StyleSheet,
+        Theme: style::StyleSheet + container::StyleSheet,
     {
         Table {
             header,
@@ -50,12 +49,12 @@ pub mod table {
     }
 
     /// Defines what a column looks like for each [`Row`](Self::Row) of data.
-    pub trait Column<'a, Message, Renderer> {
+    pub trait Column<'a, Message, Theme, Renderer> {
         /// A row of data.
         type Row;
 
         /// Define the header [`Element`] for this column.
-        fn header(&'a self, col_index: usize) -> Element<'a, Message, Renderer>;
+        fn header(&'a self, col_index: usize) -> Element<'a, Message, Theme, Renderer>;
 
         /// Define the cell [`Element`] for this column.
         fn cell(
@@ -63,14 +62,14 @@ pub mod table {
             col_index: usize,
             row_index: usize,
             row: &'a Self::Row,
-        ) -> Element<'a, Message, Renderer>;
+        ) -> Element<'a, Message, Theme, Renderer>;
 
         /// Define the footer [`Element`] for this column.
         fn footer(
             &'a self,
             _col_index: usize,
             _rows: &'a [Self::Row],
-        ) -> Option<Element<'a, Message, Renderer>> {
+        ) -> Option<Element<'a, Message, Theme, Renderer>> {
             None
         }
 
@@ -83,10 +82,9 @@ pub mod table {
 
     /// An element to display rows of data into columns.
     #[allow(missing_debug_implementations)]
-    pub struct Table<'a, Column, Row, Message, Renderer>
+    pub struct Table<'a, Column, Row, Message, Theme>
     where
-        Renderer: iced_core::Renderer + 'a,
-        Renderer::Theme: style::StyleSheet + container::StyleSheet,
+        Theme: style::StyleSheet + container::StyleSheet,
     {
         header: scrollable::Id,
         body: scrollable::Id,
@@ -100,15 +98,14 @@ pub mod table {
         min_column_width: f32,
         divider_width: f32,
         cell_padding: Padding,
-        style: <Renderer::Theme as style::StyleSheet>::Style,
+        style: <Theme as style::StyleSheet>::Style,
         // TODO: Upstream make this Copy
         scrollable_properties: Box<dyn Fn() -> scrollable::Properties + 'a>,
     }
 
-    impl<'a, Column, Row, Message, Renderer> Table<'a, Column, Row, Message, Renderer>
+    impl<'a, Column, Row, Message, Theme> Table<'a, Column, Row, Message, Theme>
     where
-        Renderer: iced_core::Renderer + 'a,
-        Renderer::Theme: style::StyleSheet + container::StyleSheet,
+        Theme: style::StyleSheet + container::StyleSheet,
     {
         /// Sets the message that will be produced when a [`Column`] is resizing. Setting this
         /// will enable the resizing interaction.
@@ -171,10 +168,7 @@ pub mod table {
         }
 
         /// Sets the style variant of this [`Table`].
-        pub fn style(
-            self,
-            style: impl Into<<Renderer::Theme as style::StyleSheet>::Style>,
-        ) -> Self {
+        pub fn style(self, style: impl Into<<Theme as style::StyleSheet>::Style>) -> Self {
             Self {
                 style: style.into(),
                 ..self
@@ -190,15 +184,15 @@ pub mod table {
         }
     }
 
-    impl<'a, Column, Row, Message, Renderer> From<Table<'a, Column, Row, Message, Renderer>>
-        for Element<'a, Message, Renderer>
+    impl<'a, Column, Row, Message, Theme, Renderer> From<Table<'a, Column, Row, Message, Theme>>
+        for Element<'a, Message, Theme, Renderer>
     where
         Renderer: iced_core::Renderer + 'a,
-        Renderer::Theme: style::StyleSheet + container::StyleSheet + scrollable::StyleSheet,
-        Column: self::Column<'a, Message, Renderer, Row = Row>,
+        Theme: style::StyleSheet + container::StyleSheet + scrollable::StyleSheet + 'a,
+        Column: self::Column<'a, Message, Theme, Renderer, Row = Row>,
         Message: 'a + Clone,
     {
-        fn from(table: Table<'a, Column, Row, Message, Renderer>) -> Self {
+        fn from(table: Table<'a, Column, Row, Message, Theme>) -> Self {
             let Table {
                 header,
                 body,
@@ -232,8 +226,7 @@ pub mod table {
                             style.clone(),
                         )
                     })
-                    .chain(dummy_container(columns, min_width, min_column_width))
-                    .collect()),
+                    .chain(dummy_container(columns, min_width, min_column_width))),
                 style.clone(),
             ))
             .id(header)
@@ -248,34 +241,28 @@ pub mod table {
                     .scroller_width(0),
             });
 
-            let body = scrollable(column(
-                rows.iter()
-                    .enumerate()
-                    .map(|(row_index, _row)| {
-                        style::wrapper::row(
-                            row(columns
-                                .iter()
-                                .enumerate()
-                                .map(|(col_index, column)| {
-                                    body_container(
-                                        col_index,
-                                        row_index,
-                                        column,
-                                        _row,
-                                        min_column_width,
-                                        divider_width,
-                                        cell_padding,
-                                    )
-                                })
-                                .chain(dummy_container(columns, min_width, min_column_width))
-                                .collect()),
-                            style.clone(),
-                            row_index,
-                        )
-                        .into()
-                    })
-                    .collect(),
-            ))
+            let body = scrollable(column(rows.iter().enumerate().map(|(row_index, _row)| {
+                style::wrapper::row(
+                    row(columns
+                        .iter()
+                        .enumerate()
+                        .map(|(col_index, column)| {
+                            body_container(
+                                col_index,
+                                row_index,
+                                column,
+                                _row,
+                                min_column_width,
+                                divider_width,
+                                cell_padding,
+                            )
+                        })
+                        .chain(dummy_container(columns, min_width, min_column_width))),
+                    style.clone(),
+                    row_index,
+                )
+                .into()
+            })))
             .id(body)
             .on_scroll(move |viewport| {
                 let offset = viewport.absolute_offset();
@@ -306,8 +293,7 @@ pub mod table {
                                 style.clone(),
                             )
                         })
-                        .chain(dummy_container(columns, min_width, min_column_width))
-                        .collect()),
+                        .chain(dummy_container(columns, min_width, min_column_width))),
                     style,
                 ))
                 .id(footer)
@@ -333,7 +319,7 @@ pub mod table {
         }
     }
 
-    fn header_container<'a, Column, Row, Message, Renderer>(
+    fn header_container<'a, Column, Row, Message, Theme, Renderer>(
         index: usize,
         column: &'a Column,
         on_drag: Option<fn(usize, f32) -> Message>,
@@ -341,12 +327,12 @@ pub mod table {
         min_column_width: f32,
         divider_width: f32,
         cell_padding: Padding,
-        style: <Renderer::Theme as style::StyleSheet>::Style,
-    ) -> Element<'a, Message, Renderer>
+        style: <Theme as style::StyleSheet>::Style,
+    ) -> Element<'a, Message, Theme, Renderer>
     where
         Renderer: iced_core::Renderer + 'a,
-        Renderer::Theme: style::StyleSheet + container::StyleSheet,
-        Column: self::Column<'a, Message, Renderer, Row = Row>,
+        Theme: style::StyleSheet + container::StyleSheet + 'a,
+        Column: self::Column<'a, Message, Theme, Renderer, Row = Row>,
         Message: 'a + Clone,
     {
         let content = container(column.header(index))
@@ -366,7 +352,7 @@ pub mod table {
         )
     }
 
-    fn body_container<'a, Column, Row, Message, Renderer>(
+    fn body_container<'a, Column, Row, Message, Theme, Renderer>(
         col_index: usize,
         row_index: usize,
         column: &'a Column,
@@ -374,11 +360,11 @@ pub mod table {
         min_column_width: f32,
         divider_width: f32,
         cell_padding: Padding,
-    ) -> Element<'a, Message, Renderer>
+    ) -> Element<'a, Message, Theme, Renderer>
     where
         Renderer: iced_core::Renderer + 'a,
-        Renderer::Theme: style::StyleSheet + container::StyleSheet,
-        Column: self::Column<'a, Message, Renderer, Row = Row>,
+        Theme: style::StyleSheet + container::StyleSheet + 'a,
+        Column: self::Column<'a, Message, Theme, Renderer, Row = Row>,
         Message: 'a + Clone,
     {
         let width = column.width() + column.resize_offset().unwrap_or_default();
@@ -394,7 +380,7 @@ pub mod table {
             .into()
     }
 
-    fn footer_container<'a, Column, Row, Message, Renderer>(
+    fn footer_container<'a, Column, Row, Message, Theme, Renderer>(
         index: usize,
         column: &'a Column,
         rows: &'a [Row],
@@ -403,12 +389,12 @@ pub mod table {
         min_column_width: f32,
         divider_width: f32,
         cell_padding: Padding,
-        style: <Renderer::Theme as style::StyleSheet>::Style,
-    ) -> Element<'a, Message, Renderer>
+        style: <Theme as style::StyleSheet>::Style,
+    ) -> Element<'a, Message, Theme, Renderer>
     where
         Renderer: iced_core::Renderer + 'a,
-        Renderer::Theme: style::StyleSheet + container::StyleSheet,
-        Column: self::Column<'a, Message, Renderer, Row = Row>,
+        Theme: style::StyleSheet + container::StyleSheet + 'a,
+        Column: self::Column<'a, Message, Theme, Renderer, Row = Row>,
         Message: 'a + Clone,
     {
         let content = if let Some(footer) = column.footer(index, rows) {
@@ -433,20 +419,20 @@ pub mod table {
         )
     }
 
-    fn with_divider<'a, Column, Row, Message, Renderer>(
+    fn with_divider<'a, Column, Row, Message, Theme, Renderer>(
         index: usize,
         column: &'a Column,
-        content: Element<'a, Message, Renderer>,
+        content: Element<'a, Message, Theme, Renderer>,
         on_drag: Option<fn(usize, f32) -> Message>,
         on_release: Option<Message>,
         min_column_width: f32,
         divider_width: f32,
-        style: <Renderer::Theme as style::StyleSheet>::Style,
-    ) -> Element<'a, Message, Renderer>
+        style: <Theme as style::StyleSheet>::Style,
+    ) -> Element<'a, Message, Theme, Renderer>
     where
         Renderer: iced_core::Renderer + 'a,
-        Renderer::Theme: style::StyleSheet + container::StyleSheet,
-        Column: self::Column<'a, Message, Renderer, Row = Row>,
+        Theme: style::StyleSheet + container::StyleSheet + 'a,
+        Column: self::Column<'a, Message, Theme, Renderer, Row = Row>,
         Message: 'a + Clone,
     {
         let width =
@@ -476,15 +462,15 @@ pub mod table {
     }
 
     // Used to enforce "min_width"
-    fn dummy_container<'a, Column, Row, Message, Renderer>(
+    fn dummy_container<'a, Column, Row, Message, Theme, Renderer>(
         columns: &'a [Column],
         min_width: f32,
         min_column_width: f32,
-    ) -> Option<Element<'a, Message, Renderer>>
+    ) -> Option<Element<'a, Message, Theme, Renderer>>
     where
         Renderer: iced_core::Renderer + 'a,
-        Renderer::Theme: style::StyleSheet + container::StyleSheet,
-        Column: self::Column<'a, Message, Renderer, Row = Row>,
+        Theme: style::StyleSheet + container::StyleSheet + 'a,
+        Column: self::Column<'a, Message, Theme, Renderer, Row = Row>,
         Message: 'a + Clone,
     {
         let total_width: f32 = columns

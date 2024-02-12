@@ -153,22 +153,12 @@ impl Application for App {
         });
 
         let content = column![
-            checkbox(
-                "Resize Columns",
-                self.resize_columns_enabled,
-                Message::ResizeColumnsEnabled
-            ),
-            checkbox("Footer", self.footer_enabled, Message::FooterEnabled),
-            checkbox(
-                "Min Width",
-                self.min_width_enabled,
-                Message::MinWidthEnabled
-            ),
-            checkbox(
-                "Dark Theme",
-                matches!(self.theme, Theme::Dark),
-                Message::DarkThemeEnabled
-            ),
+            checkbox("Resize Columns", self.resize_columns_enabled,)
+                .on_toggle(Message::ResizeColumnsEnabled),
+            checkbox("Footer", self.footer_enabled,).on_toggle(Message::FooterEnabled),
+            checkbox("Min Width", self.min_width_enabled,).on_toggle(Message::MinWidthEnabled),
+            checkbox("Dark Theme", matches!(self.theme, Theme::Dark),)
+                .on_toggle(Message::DarkThemeEnabled),
             table,
         ]
         .spacing(6);
@@ -267,7 +257,7 @@ impl fmt::Display for Category {
     }
 }
 
-impl<'a> table::Column<'a, Message, Renderer> for Column {
+impl<'a> table::Column<'a, Message, Theme, Renderer> for Column {
     type Row = Row;
 
     fn header(&'a self, _col_index: usize) -> Element<'a, Message> {
@@ -294,24 +284,21 @@ impl<'a> table::Column<'a, Message, Renderer> for Column {
                 Message::Category(row_index, category)
             })
             .into(),
-            ColumnKind::Enabled => checkbox("", row.is_enabled, move |enabled| {
-                Message::Enabled(row_index, enabled)
-            })
-            .into(),
+            ColumnKind::Enabled => checkbox("", row.is_enabled)
+                .on_toggle(move |enabled| Message::Enabled(row_index, enabled))
+                .into(),
             ColumnKind::Notes => text_input("", &row.notes)
-                .padding(2)
                 .on_input(move |notes| Message::Notes(row_index, notes))
                 .width(Length::Fill)
                 .into(),
             ColumnKind::Delete => button(text("Delete"))
-                .padding(2)
                 .on_press(Message::Delete(row_index))
                 .into(),
         };
 
         container(content)
             .width(Length::Fill)
-            .height(24)
+            .height(32)
             .center_y()
             .into()
     }

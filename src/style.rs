@@ -59,18 +59,16 @@ impl StyleSheet for iced_style::Theme {
 }
 
 pub(crate) mod wrapper {
-    use iced_core::{mouse::Cursor, Color, Element, Widget};
+    use iced_core::{mouse::Cursor, Color, Element, Length, Size, Vector, Widget};
     use iced_widget::container;
 
-    use super::StyleSheet;
-
-    pub fn header<'a, Message, Renderer>(
-        content: impl Into<Element<'a, Message, Renderer>>,
-        style: <Renderer::Theme as super::StyleSheet>::Style,
-    ) -> Element<'a, Message, Renderer>
+    pub fn header<'a, Message, Theme, Renderer>(
+        content: impl Into<Element<'a, Message, Theme, Renderer>>,
+        style: <Theme as super::StyleSheet>::Style,
+    ) -> Element<'a, Message, Theme, Renderer>
     where
         Renderer: iced_core::Renderer + 'a,
-        Renderer::Theme: super::StyleSheet,
+        Theme: super::StyleSheet + 'a,
         Message: 'a,
     {
         Wrapper {
@@ -81,13 +79,13 @@ pub(crate) mod wrapper {
         .into()
     }
 
-    pub fn footer<'a, Message, Renderer>(
-        content: impl Into<Element<'a, Message, Renderer>>,
-        style: <Renderer::Theme as super::StyleSheet>::Style,
-    ) -> Element<'a, Message, Renderer>
+    pub fn footer<'a, Message, Theme, Renderer>(
+        content: impl Into<Element<'a, Message, Theme, Renderer>>,
+        style: <Theme as super::StyleSheet>::Style,
+    ) -> Element<'a, Message, Theme, Renderer>
     where
         Renderer: iced_core::Renderer + 'a,
-        Renderer::Theme: super::StyleSheet,
+        Theme: super::StyleSheet + 'a,
         Message: 'a,
     {
         Wrapper {
@@ -98,14 +96,14 @@ pub(crate) mod wrapper {
         .into()
     }
 
-    pub fn row<'a, Message, Renderer>(
-        content: impl Into<Element<'a, Message, Renderer>>,
-        style: <Renderer::Theme as super::StyleSheet>::Style,
+    pub fn row<'a, Message, Theme, Renderer>(
+        content: impl Into<Element<'a, Message, Theme, Renderer>>,
+        style: <Theme as super::StyleSheet>::Style,
         index: usize,
-    ) -> Element<'a, Message, Renderer>
+    ) -> Element<'a, Message, Theme, Renderer>
     where
         Renderer: iced_core::Renderer + 'a,
-        Renderer::Theme: super::StyleSheet,
+        Theme: super::StyleSheet + 'a,
         Message: 'a,
     {
         Wrapper {
@@ -123,14 +121,13 @@ pub(crate) mod wrapper {
     }
 
     impl Target {
-        fn appearance<Renderer>(
+        fn appearance<Theme>(
             &self,
-            theme: &Renderer::Theme,
-            style: &<Renderer::Theme as super::StyleSheet>::Style,
+            theme: &Theme,
+            style: &<Theme as super::StyleSheet>::Style,
         ) -> container::Appearance
         where
-            Renderer: iced_core::Renderer,
-            Renderer::Theme: super::StyleSheet,
+            Theme: super::StyleSheet,
         {
             match self {
                 Target::Header => theme.header(style),
@@ -140,55 +137,52 @@ pub(crate) mod wrapper {
         }
     }
 
-    struct Wrapper<'a, Message, Renderer>
+    struct Wrapper<'a, Message, Theme, Renderer>
     where
         Renderer: iced_core::Renderer,
-        Renderer::Theme: super::StyleSheet,
+        Theme: super::StyleSheet,
     {
-        content: Element<'a, Message, Renderer>,
+        content: Element<'a, Message, Theme, Renderer>,
         target: Target,
-        style: <Renderer::Theme as super::StyleSheet>::Style,
+        style: <Theme as super::StyleSheet>::Style,
     }
 
-    impl<'a, Message, Renderer> Widget<Message, Renderer> for Wrapper<'a, Message, Renderer>
+    impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+        for Wrapper<'a, Message, Theme, Renderer>
     where
         Renderer: iced_core::Renderer,
-        Renderer::Theme: super::StyleSheet,
+        Theme: super::StyleSheet,
     {
-        fn width(&self) -> iced_core::Length {
-            self.content.as_widget().width()
-        }
-
-        fn height(&self) -> iced_core::Length {
-            self.content.as_widget().height()
+        fn size(&self) -> Size<Length> {
+            self.content.as_widget().size()
         }
 
         fn layout(
             &self,
+            state: &mut iced_core::widget::Tree,
             renderer: &Renderer,
             limits: &iced_core::layout::Limits,
         ) -> iced_core::layout::Node {
-            self.content.as_widget().layout(renderer, limits)
+            self.content.as_widget().layout(state, renderer, limits)
         }
 
         fn draw(
             &self,
             state: &iced_core::widget::Tree,
             renderer: &mut Renderer,
-            theme: &<Renderer as iced_core::Renderer>::Theme,
+            theme: &Theme,
             style: &iced_core::renderer::Style,
             layout: iced_core::Layout<'_>,
             cursor: Cursor,
             viewport: &iced_core::Rectangle,
         ) {
-            let appearance = self.target.appearance::<Renderer>(theme, &self.style);
+            let appearance = self.target.appearance::<Theme>(theme, &self.style);
 
             renderer.fill_quad(
                 iced_core::renderer::Quad {
                     bounds: layout.bounds(),
-                    border_radius: appearance.border_radius,
-                    border_width: appearance.border_width,
-                    border_color: appearance.border_color,
+                    border: appearance.border,
+                    shadow: Default::default(),
                 },
                 appearance
                     .background
@@ -267,20 +261,22 @@ pub(crate) mod wrapper {
             state: &'b mut iced_core::widget::Tree,
             layout: iced_core::Layout<'_>,
             renderer: &Renderer,
-        ) -> Option<iced_core::overlay::Element<'b, Message, Renderer>> {
+            translation: Vector,
+        ) -> Option<iced_core::overlay::Element<'b, Message, Theme, Renderer>> {
             self.content
                 .as_widget_mut()
-                .overlay(state, layout, renderer)
+                .overlay(state, layout, renderer, translation)
         }
     }
 
-    impl<'a, Message, Renderer> From<Wrapper<'a, Message, Renderer>> for Element<'a, Message, Renderer>
+    impl<'a, Message, Theme, Renderer> From<Wrapper<'a, Message, Theme, Renderer>>
+        for Element<'a, Message, Theme, Renderer>
     where
         Renderer: iced_core::Renderer + 'a,
-        Renderer::Theme: super::StyleSheet,
+        Theme: super::StyleSheet + 'a,
         Message: 'a,
     {
-        fn from(wrapper: Wrapper<'a, Message, Renderer>) -> Self {
+        fn from(wrapper: Wrapper<'a, Message, Theme, Renderer>) -> Self {
             Element::new(wrapper)
         }
     }

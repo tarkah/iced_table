@@ -1,10 +1,10 @@
 use iced_core::layout::{self, Layout};
 use iced_core::mouse::Cursor;
 use iced_core::widget::{self, Widget};
-use iced_core::{event, mouse, overlay, Color, Element, Length, Point, Rectangle};
+use iced_core::{event, mouse, overlay, Color, Element, Length, Point, Rectangle, Size, Vector};
 use iced_core::{renderer, Clipboard, Shell};
 
-use crate::style::{self, StyleSheet};
+use crate::style;
 
 #[derive(Clone, Copy, Debug, Default)]
 struct State {
@@ -12,29 +12,29 @@ struct State {
     is_divider_hovered: bool,
 }
 
-pub(crate) struct Divider<'a, Message, Renderer>
+pub(crate) struct Divider<'a, Message, Theme, Renderer>
 where
     Renderer: renderer::Renderer,
-    Renderer::Theme: style::StyleSheet,
+    Theme: style::StyleSheet,
 {
-    content: Element<'a, Message, Renderer>,
+    content: Element<'a, Message, Theme, Renderer>,
     width: f32,
     on_drag: Box<dyn Fn(f32) -> Message + 'a>,
     on_release: Message,
-    style: <Renderer::Theme as style::StyleSheet>::Style,
+    style: <Theme as style::StyleSheet>::Style,
 }
 
-impl<'a, Message, Renderer> Divider<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Divider<'a, Message, Theme, Renderer>
 where
     Renderer: renderer::Renderer,
-    Renderer::Theme: style::StyleSheet,
+    Theme: style::StyleSheet,
 {
     pub fn new(
-        content: impl Into<Element<'a, Message, Renderer>>,
+        content: impl Into<Element<'a, Message, Theme, Renderer>>,
         width: f32,
         on_drag: impl Fn(f32) -> Message + 'a,
         on_release: Message,
-        style: <Renderer::Theme as style::StyleSheet>::Style,
+        style: <Theme as style::StyleSheet>::Style,
     ) -> Self {
         Self {
             content: content.into(),
@@ -70,11 +70,12 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for Divider<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Divider<'a, Message, Theme, Renderer>
 where
     Message: Clone,
     Renderer: renderer::Renderer,
-    Renderer::Theme: style::StyleSheet,
+    Theme: style::StyleSheet,
 {
     fn tag(&self) -> widget::tree::Tag {
         widget::tree::Tag::of::<State>()
@@ -92,25 +93,23 @@ where
         tree.diff_children(&[&self.content]);
     }
 
-    fn width(&self) -> Length {
-        Length::Fill
+    fn size(&self) -> Size<Length> {
+        self.content.as_widget().size()
     }
 
-    fn height(&self) -> Length {
-        self.content.as_widget().height()
-    }
+    fn layout(
+        &self,
+        tree: &mut widget::Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        let padding = [0.0, self.width, 0.0, 0.0];
 
-    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> layout::Node {
-        let padding = [0.0, self.width, 0.0, 0.0].into();
-
-        let limits = limits
-            .width(Length::Fill)
-            .height(Length::Shrink)
-            .pad(padding);
-
-        let content = self.content.as_widget().layout(renderer, &limits);
-
-        layout::Node::with_children(content.size().pad(padding), vec![content])
+        layout::padded(limits, Length::Fill, Length::Shrink, padding, |limits| {
+            self.content
+                .as_widget()
+                .layout(&mut tree.children[0], renderer, limits)
+        })
     }
 
     fn on_event(
@@ -195,7 +194,7 @@ where
         &self,
         tree: &widget::Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor: Cursor,
@@ -236,9 +235,8 @@ where
             renderer.fill_quad(
                 renderer::Quad {
                     bounds: snap(self.divider_bounds(layout.bounds())),
-                    border_radius: appearance.border_radius.into(),
-                    border_width: appearance.border_width,
-                    border_color: appearance.border_color,
+                    border: appearance.border,
+                    shadow: Default::default(),
                 },
                 appearance
                     .background
@@ -252,11 +250,13 @@ where
         tree: &'b mut widget::Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+        translation: Vector,
+    ) -> Option<overlay::Element<'_, Message, Theme, Renderer>> {
         self.content.as_widget_mut().overlay(
             &mut tree.children[0],
             layout.children().next().unwrap(),
             renderer,
+            translation,
         )
     }
 
@@ -276,13 +276,14 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Divider<'a, Message, Renderer>> for Element<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> From<Divider<'a, Message, Theme, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Message: Clone + 'a,
     Renderer: renderer::Renderer + 'a,
-    Renderer::Theme: style::StyleSheet,
+    Theme: style::StyleSheet + 'a,
 {
-    fn from(divider: Divider<'a, Message, Renderer>) -> Self {
+    fn from(divider: Divider<'a, Message, Theme, Renderer>) -> Self {
         Element::new(divider)
     }
 }
