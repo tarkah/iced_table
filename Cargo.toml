@@ -20,9 +20,3 @@ members = [
 iced_core = "0.12"
 iced_style = "0.12"
 iced_widget = "0.12"
-
-[patch.crates-io]
-iced = { git = "https://github.com/iced-rs/iced.git", rev = "891f29eea0cb32f0bee49fbace1757b82e1937f3" }
-iced_core = { git = "https://github.com/iced-rs/iced.git", rev = "891f29eea0cb32f0bee49fbace1757b82e1937f3" }
-iced_style = { git = "https://github.com/iced-rs/iced.git", rev = "891f29eea0cb32f0bee49fbace1757b82e1937f3" }
-iced_widget = { git = "https://github.com/iced-rs/iced.git", rev = "891f29eea0cb32f0bee49fbace1757b82e1937f3" }

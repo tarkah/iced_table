@@ -309,7 +309,7 @@ impl<'a> table::Column<'a, Message, Theme, Renderer> for Column {
 
             Element::from(text(format!("Total Enabled: {total_enabled}")))
         } else {
-            horizontal_space(Length::Fill).into()
+            horizontal_space().into()
         };
 
         Some(container(content).height(24).center_y().into())
