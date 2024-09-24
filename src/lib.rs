@@ -1,6 +1,6 @@
 //! A table widget for iced
 #![deny(missing_debug_implementations, missing_docs)]
-pub use style::StyleSheet;
+pub use style::Catalog;
 pub use table::{table, Table};
 
 mod divider;
@@ -28,7 +28,7 @@ pub mod table {
         on_sync: fn(scrollable::AbsoluteOffset) -> Message,
     ) -> Table<'a, Column, Row, Message, Theme>
     where
-        Theme: style::StyleSheet + container::StyleSheet,
+        Theme: style::Catalog + container::Catalog,
     {
         Table {
             header,
@@ -44,7 +44,7 @@ pub mod table {
             divider_width: 2.0,
             cell_padding: 4.into(),
             style: Default::default(),
-            scrollable_properties: Box::new(|| Default::default()),
+            scrollbar: scrollable::Scrollbar::default(),
         }
     }
 
@@ -84,7 +84,7 @@ pub mod table {
     #[allow(missing_debug_implementations)]
     pub struct Table<'a, Column, Row, Message, Theme>
     where
-        Theme: style::StyleSheet + container::StyleSheet,
+        Theme: style::Catalog + container::Catalog,
     {
         header: scrollable::Id,
         body: scrollable::Id,
@@ -98,14 +98,13 @@ pub mod table {
         min_column_width: f32,
         divider_width: f32,
         cell_padding: Padding,
-        style: <Theme as style::StyleSheet>::Style,
-        // TODO: Upstream make this Copy
-        scrollable_properties: Box<dyn Fn() -> scrollable::Properties + 'a>,
+        style: <Theme as style::Catalog>::Style,
+        scrollbar: scrollable::Scrollbar,
     }
 
     impl<'a, Column, Row, Message, Theme> Table<'a, Column, Row, Message, Theme>
     where
-        Theme: style::StyleSheet + container::StyleSheet,
+        Theme: style::Catalog + container::Catalog,
     {
         /// Sets the message that will be produced when a [`Column`] is resizing. Setting this
         /// will enable the resizing interaction.
@@ -168,19 +167,16 @@ pub mod table {
         }
 
         /// Sets the style variant of this [`Table`].
-        pub fn style(self, style: impl Into<<Theme as style::StyleSheet>::Style>) -> Self {
+        pub fn style(self, style: impl Into<<Theme as style::Catalog>::Style>) -> Self {
             Self {
                 style: style.into(),
                 ..self
             }
         }
 
-        ///  Sets the [`Properties`](iced_widget::scrollable::Properties) used for the table's body scrollable.
-        pub fn scrollable_properties(self, f: impl Fn() -> scrollable::Properties + 'a) -> Self {
-            Self {
-                scrollable_properties: Box::new(f),
-                ..self
-            }
+        ///  Sets the [`Scrollbar`](iced_widget::scrollable::Scrollbar) used for the table's body scrollable.
+        pub fn scrollbar(self, scrollbar: scrollable::Scrollbar) -> Self {
+            Self { scrollbar, ..self }
         }
     }
 
@@ -188,7 +184,7 @@ pub mod table {
         for Element<'a, Message, Theme, Renderer>
     where
         Renderer: iced_core::Renderer + 'a,
-        Theme: style::StyleSheet + container::StyleSheet + scrollable::StyleSheet + 'a,
+        Theme: style::Catalog + container::Catalog + scrollable::Catalog + 'a,
         Column: self::Column<'a, Message, Theme, Renderer, Row = Row>,
         Message: 'a + Clone,
     {
@@ -207,7 +203,7 @@ pub mod table {
                 divider_width,
                 cell_padding,
                 style,
-                scrollable_properties,
+                scrollbar,
             } = table;
 
             let header = scrollable(style::wrapper::header(
@@ -231,11 +227,11 @@ pub mod table {
             ))
             .id(header)
             .direction(scrollable::Direction::Both {
-                vertical: scrollable::Properties::new()
+                vertical: scrollable::Scrollbar::new()
                     .width(0)
                     .margin(0)
                     .scroller_width(0),
-                horizontal: scrollable::Properties::new()
+                horizontal: scrollable::Scrollbar::new()
                     .width(0)
                     .margin(0)
                     .scroller_width(0),
@@ -270,8 +266,8 @@ pub mod table {
                 (on_sync)(scrollable::AbsoluteOffset { y: 0.0, ..offset })
             })
             .direction(scrollable::Direction::Both {
-                horizontal: (scrollable_properties)(),
-                vertical: (scrollable_properties)(),
+                horizontal: scrollbar,
+                vertical: scrollbar,
             })
             .height(Length::Fill);
 
@@ -298,11 +294,11 @@ pub mod table {
                 ))
                 .id(footer)
                 .direction(scrollable::Direction::Both {
-                    vertical: scrollable::Properties::new()
+                    vertical: scrollable::Scrollbar::new()
                         .width(0)
                         .margin(0)
                         .scroller_width(0),
-                    horizontal: scrollable::Properties::new()
+                    horizontal: scrollable::Scrollbar::new()
                         .width(0)
                         .margin(0)
                         .scroller_width(0),
@@ -327,11 +323,11 @@ pub mod table {
         min_column_width: f32,
         divider_width: f32,
         cell_padding: Padding,
-        style: <Theme as style::StyleSheet>::Style,
+        style: <Theme as style::Catalog>::Style,
     ) -> Element<'a, Message, Theme, Renderer>
     where
         Renderer: iced_core::Renderer + 'a,
-        Theme: style::StyleSheet + container::StyleSheet + 'a,
+        Theme: style::Catalog + container::Catalog + 'a,
         Column: self::Column<'a, Message, Theme, Renderer, Row = Row>,
         Message: 'a + Clone,
     {
@@ -363,7 +359,7 @@ pub mod table {
     ) -> Element<'a, Message, Theme, Renderer>
     where
         Renderer: iced_core::Renderer + 'a,
-        Theme: style::StyleSheet + container::StyleSheet + 'a,
+        Theme: style::Catalog + container::Catalog + 'a,
         Column: self::Column<'a, Message, Theme, Renderer, Row = Row>,
         Message: 'a + Clone,
     {
@@ -389,11 +385,11 @@ pub mod table {
         min_column_width: f32,
         divider_width: f32,
         cell_padding: Padding,
-        style: <Theme as style::StyleSheet>::Style,
+        style: <Theme as style::Catalog>::Style,
     ) -> Element<'a, Message, Theme, Renderer>
     where
         Renderer: iced_core::Renderer + 'a,
-        Theme: style::StyleSheet + container::StyleSheet + 'a,
+        Theme: style::Catalog + container::Catalog + 'a,
         Column: self::Column<'a, Message, Theme, Renderer, Row = Row>,
         Message: 'a + Clone,
     {
@@ -401,7 +397,6 @@ pub mod table {
             container(footer)
                 .width(Length::Fill)
                 .padding(cell_padding)
-                .center_y()
                 .into()
         } else {
             Element::from(Space::with_width(Length::Fill))
@@ -427,11 +422,11 @@ pub mod table {
         on_release: Option<Message>,
         min_column_width: f32,
         divider_width: f32,
-        style: <Theme as style::StyleSheet>::Style,
+        style: <Theme as style::Catalog>::Style,
     ) -> Element<'a, Message, Theme, Renderer>
     where
         Renderer: iced_core::Renderer + 'a,
-        Theme: style::StyleSheet + container::StyleSheet + 'a,
+        Theme: style::Catalog + container::Catalog + 'a,
         Column: self::Column<'a, Message, Theme, Renderer, Row = Row>,
         Message: 'a + Clone,
     {
@@ -469,7 +464,7 @@ pub mod table {
     ) -> Option<Element<'a, Message, Theme, Renderer>>
     where
         Renderer: iced_core::Renderer + 'a,
-        Theme: style::StyleSheet + container::StyleSheet + 'a,
+        Theme: style::Catalog + container::Catalog + 'a,
         Column: self::Column<'a, Message, Theme, Renderer, Row = Row>,
         Message: 'a + Clone,
     {

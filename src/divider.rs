@@ -1,7 +1,9 @@
 use iced_core::layout::{self, Layout};
 use iced_core::mouse::Cursor;
 use iced_core::widget::{self, Widget};
-use iced_core::{event, mouse, overlay, Color, Element, Length, Point, Rectangle, Size, Vector};
+use iced_core::{
+    event, mouse, overlay, padding, Color, Element, Length, Point, Rectangle, Size, Vector,
+};
 use iced_core::{renderer, Clipboard, Shell};
 
 use crate::style;
@@ -15,26 +17,26 @@ struct State {
 pub(crate) struct Divider<'a, Message, Theme, Renderer>
 where
     Renderer: renderer::Renderer,
-    Theme: style::StyleSheet,
+    Theme: style::Catalog,
 {
     content: Element<'a, Message, Theme, Renderer>,
     width: f32,
     on_drag: Box<dyn Fn(f32) -> Message + 'a>,
     on_release: Message,
-    style: <Theme as style::StyleSheet>::Style,
+    style: <Theme as style::Catalog>::Style,
 }
 
 impl<'a, Message, Theme, Renderer> Divider<'a, Message, Theme, Renderer>
 where
     Renderer: renderer::Renderer,
-    Theme: style::StyleSheet,
+    Theme: style::Catalog,
 {
     pub fn new(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
         width: f32,
         on_drag: impl Fn(f32) -> Message + 'a,
         on_release: Message,
-        style: <Theme as style::StyleSheet>::Style,
+        style: <Theme as style::Catalog>::Style,
     ) -> Self {
         Self {
             content: content.into(),
@@ -75,7 +77,7 @@ impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
 where
     Message: Clone,
     Renderer: renderer::Renderer,
-    Theme: style::StyleSheet,
+    Theme: style::Catalog,
 {
     fn tag(&self) -> widget::tree::Tag {
         widget::tree::Tag::of::<State>()
@@ -103,7 +105,7 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let padding = [0.0, self.width, 0.0, 0.0];
+        let padding = padding::all(0).right(self.width);
 
         layout::padded(limits, Length::Fill, Length::Shrink, padding, |limits| {
             self.content
@@ -265,7 +267,7 @@ where
         tree: &mut widget::Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<Message>,
+        operation: &mut dyn widget::Operation,
     ) {
         self.content.as_widget().operate(
             &mut tree.children[0],
@@ -281,7 +283,7 @@ impl<'a, Message, Theme, Renderer> From<Divider<'a, Message, Theme, Renderer>>
 where
     Message: Clone + 'a,
     Renderer: renderer::Renderer + 'a,
-    Theme: style::StyleSheet + 'a,
+    Theme: style::Catalog + 'a,
 {
     fn from(divider: Divider<'a, Message, Theme, Renderer>) -> Self {
         Element::new(divider)

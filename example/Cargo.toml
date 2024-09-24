@@ -5,4 +5,4 @@ edition = "2021"
 
 [dependencies]
 iced_table = { path = "../" }
-iced = { version = "0.12", features = ["lazy"] }
+iced = { version = "0.13", features = ["lazy"] }

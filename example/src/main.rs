@@ -4,11 +4,14 @@ use iced::widget::{
     button, checkbox, column, container, horizontal_space, pick_list, responsive, scrollable, text,
     text_input,
 };
-use iced::{Application, Command, Element, Length, Renderer, Theme};
+use iced::{Element, Length, Renderer, Task, Theme};
 use iced_table::table;
 
 fn main() {
-    App::run(Default::default()).unwrap()
+    iced::application(App::title, App::update, App::view)
+        .theme(App::theme)
+        .run()
+        .unwrap()
 }
 
 #[derive(Debug, Clone)]
@@ -60,28 +63,19 @@ impl Default for App {
     }
 }
 
-impl Application for App {
-    type Executor = iced::executor::Default;
-    type Message = Message;
-    type Theme = Theme;
-    type Flags = ();
-
-    fn new(_flags: Self::Flags) -> (Self, Command<Self::Message>) {
-        (Self::default(), Command::none())
-    }
-
+impl App {
     fn title(&self) -> String {
         "Iced Table".into()
     }
 
-    fn theme(&self) -> Self::Theme {
+    fn theme(&self) -> Theme {
         self.theme.clone()
     }
 
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::SyncHeader(offset) => {
-                return Command::batch(vec![
+                return Task::batch(vec![
                     scrollable::scroll_to(self.header.clone(), offset),
                     scrollable::scroll_to(self.footer.clone(), offset),
                 ])
@@ -126,10 +120,10 @@ impl Application for App {
             }
         }
 
-        Command::none()
+        Task::none()
     }
 
-    fn view(&self) -> Element<Self::Message> {
+    fn view(&self) -> Element<Message> {
         let table = responsive(|size| {
             let mut table = table(
                 self.header.clone(),
@@ -165,10 +159,8 @@ impl Application for App {
 
         container(container(content).width(Length::Fill).height(Length::Fill))
             .padding(20)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .center_y()
+            .center_x(Length::Fill)
+            .center_y(Length::Fill)
             .into()
     }
 }
@@ -269,15 +261,10 @@ impl<'a> table::Column<'a, Message, Theme, Renderer> for Column {
             ColumnKind::Delete => "",
         };
 
-        container(text(content)).height(24).center_y().into()
+        container(text(content)).center_y(24).into()
     }
 
-    fn cell(
-        &'a self,
-        _col_index: usize,
-        row_index: usize,
-        row: &'a Self::Row,
-    ) -> Element<'a, Message> {
+    fn cell(&'a self, _col_index: usize, row_index: usize, row: &'a Row) -> Element<'a, Message> {
         let content: Element<_> = match self.kind {
             ColumnKind::Index => text(row_index).into(),
             ColumnKind::Category => pick_list(Category::ALL, Some(row.category), move |category| {
@@ -296,14 +283,10 @@ impl<'a> table::Column<'a, Message, Theme, Renderer> for Column {
                 .into(),
         };
 
-        container(content)
-            .width(Length::Fill)
-            .height(32)
-            .center_y()
-            .into()
+        container(content).width(Length::Fill).center_y(32).into()
     }
 
-    fn footer(&'a self, _col_index: usize, rows: &'a [Self::Row]) -> Option<Element<'a, Message>> {
+    fn footer(&'a self, _col_index: usize, rows: &'a [Row]) -> Option<Element<'a, Message>> {
         let content = if matches!(self.kind, ColumnKind::Enabled) {
             let total_enabled = rows.iter().filter(|row| row.is_enabled).count();
 
@@ -312,7 +295,7 @@ impl<'a> table::Column<'a, Message, Theme, Renderer> for Column {
             horizontal_space().into()
         };
 
-        Some(container(content).height(24).center_y().into())
+        Some(container(content).center_y(24).into())
     }
 
     fn width(&self) -> f32 {

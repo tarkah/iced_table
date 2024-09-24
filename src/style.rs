@@ -1,57 +1,57 @@
 use iced_widget::container;
 
 /// A set of rules that dictate the styling of a [`Table`](crate::Table).
-pub trait StyleSheet {
-    /// The supported style of the [`StyleSheet`].
+pub trait Catalog {
+    /// The supported style of the [`Catalog`].
     type Style: Default + Clone;
 
-    /// The header [`Appearance`](iced_widget::container::Appearance) of the [`StyleSheet`].
-    fn header(&self, style: &Self::Style) -> container::Appearance;
-    /// The footer [`Appearance`](iced_widget::container::Appearance) of the [`StyleSheet`].
-    fn footer(&self, style: &Self::Style) -> container::Appearance;
-    /// The row [`Appearance`](iced_widget::container::Appearance) of the [`StyleSheet`].
-    fn row(&self, style: &Self::Style, index: usize) -> container::Appearance;
-    /// The divider [`Appearance`](iced_widget::container::Appearance) of the [`StyleSheet`].
-    fn divider(&self, style: &Self::Style, hovered: bool) -> container::Appearance;
+    /// The header [`Style`](iced_widget::container::Style) of the [`Catalog`].
+    fn header(&self, style: &Self::Style) -> container::Style;
+    /// The footer [`Style`](iced_widget::container::Style) of the [`Catalog`].
+    fn footer(&self, style: &Self::Style) -> container::Style;
+    /// The row [`Style`](iced_widget::container::Style) of the [`Catalog`].
+    fn row(&self, style: &Self::Style, index: usize) -> container::Style;
+    /// The divider [`Style`](iced_widget::container::Style) of the [`Catalog`].
+    fn divider(&self, style: &Self::Style, hovered: bool) -> container::Style;
 }
 
-impl StyleSheet for iced_style::Theme {
+impl Catalog for iced_core::Theme {
     type Style = ();
 
-    fn header(&self, _style: &Self::Style) -> container::Appearance {
-        container::Appearance {
+    fn header(&self, _style: &Self::Style) -> container::Style {
+        container::Style {
             text_color: Some(self.extended_palette().background.strong.text),
             background: Some(self.extended_palette().background.strong.color.into()),
             ..Default::default()
         }
     }
 
-    fn footer(&self, style: &Self::Style) -> container::Appearance {
+    fn footer(&self, style: &Self::Style) -> container::Style {
         self.header(style)
     }
 
-    fn row(&self, _style: &Self::Style, index: usize) -> container::Appearance {
+    fn row(&self, _style: &Self::Style, index: usize) -> container::Style {
         let pair = if index % 2 == 0 {
             self.extended_palette().background.base
         } else {
             self.extended_palette().background.weak
         };
 
-        container::Appearance {
+        container::Style {
             text_color: Some(pair.text),
             background: Some(pair.color.into()),
             ..Default::default()
         }
     }
 
-    fn divider(&self, _style: &Self::Style, hovered: bool) -> container::Appearance {
+    fn divider(&self, _style: &Self::Style, hovered: bool) -> container::Style {
         let pair = if hovered {
             self.extended_palette().primary.base
         } else {
             self.extended_palette().background.weak
         };
 
-        container::Appearance {
+        container::Style {
             background: Some(pair.color.into()),
             ..Default::default()
         }
@@ -64,11 +64,11 @@ pub(crate) mod wrapper {
 
     pub fn header<'a, Message, Theme, Renderer>(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
-        style: <Theme as super::StyleSheet>::Style,
+        style: <Theme as super::Catalog>::Style,
     ) -> Element<'a, Message, Theme, Renderer>
     where
         Renderer: iced_core::Renderer + 'a,
-        Theme: super::StyleSheet + 'a,
+        Theme: super::Catalog + 'a,
         Message: 'a,
     {
         Wrapper {
@@ -81,11 +81,11 @@ pub(crate) mod wrapper {
 
     pub fn footer<'a, Message, Theme, Renderer>(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
-        style: <Theme as super::StyleSheet>::Style,
+        style: <Theme as super::Catalog>::Style,
     ) -> Element<'a, Message, Theme, Renderer>
     where
         Renderer: iced_core::Renderer + 'a,
-        Theme: super::StyleSheet + 'a,
+        Theme: super::Catalog + 'a,
         Message: 'a,
     {
         Wrapper {
@@ -98,12 +98,12 @@ pub(crate) mod wrapper {
 
     pub fn row<'a, Message, Theme, Renderer>(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
-        style: <Theme as super::StyleSheet>::Style,
+        style: <Theme as super::Catalog>::Style,
         index: usize,
     ) -> Element<'a, Message, Theme, Renderer>
     where
         Renderer: iced_core::Renderer + 'a,
-        Theme: super::StyleSheet + 'a,
+        Theme: super::Catalog + 'a,
         Message: 'a,
     {
         Wrapper {
@@ -124,10 +124,10 @@ pub(crate) mod wrapper {
         fn appearance<Theme>(
             &self,
             theme: &Theme,
-            style: &<Theme as super::StyleSheet>::Style,
-        ) -> container::Appearance
+            style: &<Theme as super::Catalog>::Style,
+        ) -> container::Style
         where
-            Theme: super::StyleSheet,
+            Theme: super::Catalog,
         {
             match self {
                 Target::Header => theme.header(style),
@@ -140,18 +140,18 @@ pub(crate) mod wrapper {
     struct Wrapper<'a, Message, Theme, Renderer>
     where
         Renderer: iced_core::Renderer,
-        Theme: super::StyleSheet,
+        Theme: super::Catalog,
     {
         content: Element<'a, Message, Theme, Renderer>,
         target: Target,
-        style: <Theme as super::StyleSheet>::Style,
+        style: <Theme as super::Catalog>::Style,
     }
 
     impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
         for Wrapper<'a, Message, Theme, Renderer>
     where
         Renderer: iced_core::Renderer,
-        Theme: super::StyleSheet,
+        Theme: super::Catalog,
     {
         fn size(&self) -> Size<Length> {
             self.content.as_widget().size()
@@ -220,7 +220,7 @@ pub(crate) mod wrapper {
             state: &mut iced_core::widget::Tree,
             layout: iced_core::Layout<'_>,
             renderer: &Renderer,
-            operation: &mut dyn iced_core::widget::Operation<Message>,
+            operation: &mut dyn iced_core::widget::Operation,
         ) {
             self.content
                 .as_widget()
@@ -273,7 +273,7 @@ pub(crate) mod wrapper {
         for Element<'a, Message, Theme, Renderer>
     where
         Renderer: iced_core::Renderer + 'a,
-        Theme: super::StyleSheet + 'a,
+        Theme: super::Catalog + 'a,
         Message: 'a,
     {
         fn from(wrapper: Wrapper<'a, Message, Theme, Renderer>) -> Self {

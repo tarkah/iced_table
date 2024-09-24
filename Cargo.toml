@@ -1,6 +1,6 @@
 [package]
 name = "iced_table"
-version = "0.12.0"
+version = "0.13.0"
 edition = "2021"
 authors = ["tarkah <admin@tarkah.dev>"]
 description = "A table widget for Iced"
@@ -16,7 +16,12 @@ members = [
   "./example",
 ]
 
+[features]
+__docs = ["iced_widget/lazy"]
+
 [dependencies]
-iced_core = "0.12"
-iced_style = "0.12"
-iced_widget = "0.12"
+iced_core = "0.13"
+iced_widget = "0.13"
+
+[package.metadata.docs.rs]
+all-features = true
