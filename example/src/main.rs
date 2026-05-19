@@ -1,14 +1,12 @@
 use std::fmt;
 
-use iced::widget::{
-    button, checkbox, column, container, horizontal_space, pick_list, responsive, scrollable, text,
-    text_input,
-};
-use iced::{Element, Length, Renderer, Task, Theme};
+use iced::widget::{button, checkbox, column, container, operation, pick_list, responsive, scrollable, space, text, text_input};
+use iced::{widget, Element, Length, Renderer, Task, Theme};
 use iced_table::table;
 
 fn main() {
-    iced::application(App::title, App::update, App::view)
+    iced::application(App::boot, App::update, App::view)
+        .title("Iced Table")
         .theme(App::theme)
         .run()
         .unwrap()
@@ -32,18 +30,22 @@ enum Message {
 struct App {
     columns: Vec<Column>,
     rows: Vec<Row>,
-    header: scrollable::Id,
-    body: scrollable::Id,
-    footer: scrollable::Id,
+    header: widget::Id,
+    body: widget::Id,
+    footer: widget::Id,
     resize_columns_enabled: bool,
     footer_enabled: bool,
     min_width_enabled: bool,
     theme: Theme,
 }
 
-impl Default for App {
-    fn default() -> Self {
-        Self {
+impl App {
+    fn theme(&self) -> Theme {
+        self.theme.clone()
+    }
+
+    fn boot() -> App {
+        App {
             columns: vec![
                 Column::new(ColumnKind::Index),
                 Column::new(ColumnKind::Category),
@@ -52,32 +54,22 @@ impl Default for App {
                 Column::new(ColumnKind::Delete),
             ],
             rows: (0..50).map(Row::generate).collect(),
-            header: scrollable::Id::unique(),
-            body: scrollable::Id::unique(),
-            footer: scrollable::Id::unique(),
+            header: widget::Id::unique(),
+            body: widget::Id::unique(),
+            footer: widget::Id::unique(),
             resize_columns_enabled: true,
             footer_enabled: true,
             min_width_enabled: true,
             theme: Theme::Light,
         }
     }
-}
-
-impl App {
-    fn title(&self) -> String {
-        "Iced Table".into()
-    }
-
-    fn theme(&self) -> Theme {
-        self.theme.clone()
-    }
 
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::SyncHeader(offset) => {
                 return Task::batch(vec![
-                    scrollable::scroll_to(self.header.clone(), offset),
-                    scrollable::scroll_to(self.footer.clone(), offset),
+                    operation::scroll_to(self.header.clone(), offset),
+                    operation::scroll_to(self.footer.clone(), offset),
                 ])
             }
             Message::Resizing(index, offset) => {
@@ -123,7 +115,7 @@ impl App {
         Task::none()
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let table = responsive(|size| {
             let mut table = table(
                 self.header.clone(),
@@ -147,11 +139,17 @@ impl App {
         });
 
         let content = column![
-            checkbox("Resize Columns", self.resize_columns_enabled,)
+            checkbox(self.resize_columns_enabled,)
+                .label("Resize Columns")
                 .on_toggle(Message::ResizeColumnsEnabled),
-            checkbox("Footer", self.footer_enabled,).on_toggle(Message::FooterEnabled),
-            checkbox("Min Width", self.min_width_enabled,).on_toggle(Message::MinWidthEnabled),
-            checkbox("Dark Theme", matches!(self.theme, Theme::Dark),)
+            checkbox(self.footer_enabled,)
+                .label("Footer")
+                .on_toggle(Message::FooterEnabled),
+            checkbox(self.min_width_enabled,)
+                .label("Min Width")
+                .on_toggle(Message::MinWidthEnabled),
+            checkbox(matches!(self.theme, Theme::Dark),)
+                .label("Dark Theme")
                 .on_toggle(Message::DarkThemeEnabled),
             table,
         ]
@@ -271,7 +269,7 @@ impl<'a> table::Column<'a, Message, Theme, Renderer> for Column {
                 Message::Category(row_index, category)
             })
             .into(),
-            ColumnKind::Enabled => checkbox("", row.is_enabled)
+            ColumnKind::Enabled => checkbox(row.is_enabled)
                 .on_toggle(move |enabled| Message::Enabled(row_index, enabled))
                 .into(),
             ColumnKind::Notes => text_input("", &row.notes)
@@ -292,7 +290,7 @@ impl<'a> table::Column<'a, Message, Theme, Renderer> for Column {
 
             Element::from(text(format!("Total Enabled: {total_enabled}")))
         } else {
-            horizontal_space().into()
+            space::horizontal().into()
         };
 
         Some(container(content).center_y(24).into())
