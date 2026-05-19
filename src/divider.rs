@@ -100,7 +100,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         tree: &mut widget::Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -109,22 +109,22 @@ where
 
         layout::padded(limits, Length::Fill, Length::Shrink, padding, |limits| {
             self.content
-                .as_widget()
+                .as_widget_mut()
                 .layout(&mut tree.children[0], renderer, limits)
         })
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut widget::Tree,
-        event: event::Event,
+        event: &event::Event,
         layout: Layout<'_>,
         cursor: Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let state = tree.state.downcast_mut::<State>();
 
         let divider_hover_bounds = self.divider_hover_bounds(layout.bounds());
@@ -136,20 +136,20 @@ where
                 mouse::Event::ButtonPressed(mouse::Button::Left) => {
                     if let Some(origin) = cursor.position_over(divider_hover_bounds) {
                         state.drag_origin = Some(origin);
-                        return event::Status::Captured;
+                        shell.capture_event();
                     }
                 }
                 mouse::Event::ButtonReleased(mouse::Button::Left) => {
                     if state.drag_origin.take().is_some() {
                         shell.publish(self.on_release.clone());
-                        return event::Status::Captured;
+                        shell.capture_event();
                     }
                 }
                 mouse::Event::CursorMoved { .. } => {
                     if let Some(position) = cursor.position() {
                         if let Some(origin) = state.drag_origin {
                             shell.publish((self.on_drag)((position - origin).x));
-                            return event::Status::Captured;
+                            shell.capture_event();
                         }
                     }
                 }
@@ -157,7 +157,7 @@ where
             }
         }
 
-        self.content.as_widget_mut().on_event(
+        self.content.as_widget_mut().update(
             &mut tree.children[0],
             event,
             layout.children().next().unwrap(),
@@ -239,6 +239,7 @@ where
                     bounds: snap(self.divider_bounds(layout.bounds())),
                     border: appearance.border,
                     shadow: Default::default(),
+                    snap: Default::default(),
                 },
                 appearance
                     .background
@@ -250,26 +251,28 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut widget::Tree,
-        layout: Layout<'_>,
+        layout: Layout<'b>,
         renderer: &Renderer,
+        viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'_, Message, Theme, Renderer>> {
+    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         self.content.as_widget_mut().overlay(
             &mut tree.children[0],
             layout.children().next().unwrap(),
             renderer,
+            viewport,
             translation,
         )
     }
 
     fn operate(
-        &self,
+        &mut self,
         tree: &mut widget::Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        self.content.as_widget().operate(
+        self.content.as_widget_mut().operate(
             &mut tree.children[0],
             layout.children().next().unwrap(),
             renderer,

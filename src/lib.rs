@@ -8,8 +8,8 @@ mod style;
 
 pub mod table {
     //! Display rows of data into columns
-    use iced_core::{Element, Length, Padding};
-    use iced_widget::{column, container, row, scrollable, Space};
+    use iced_core::{widget, Element, Length, Padding};
+    use iced_widget::{column, container, row, scrollable, space, Space};
 
     use super::divider::Divider;
     use super::style;
@@ -21,8 +21,8 @@ pub mod table {
     /// the body scrollable. It is up to the consumer to emit a [`scroll_to`](iced_widget::scrollable::scroll_to) operation
     /// from `update` when this message is received.
     pub fn table<'a, Column, Row, Message, Theme>(
-        header: scrollable::Id,
-        body: scrollable::Id,
+        header: widget::Id,
+        body: widget::Id,
         columns: &'a [Column],
         rows: &'a [Row],
         on_sync: fn(scrollable::AbsoluteOffset) -> Message,
@@ -76,7 +76,7 @@ pub mod table {
         /// Return the fixed width for this column.
         fn width(&self) -> f32;
 
-        /// Return the offset of an on-going resize of this column.
+        /// Return the offset of an ongoing resize of this column.
         fn resize_offset(&self) -> Option<f32>;
     }
 
@@ -86,9 +86,9 @@ pub mod table {
     where
         Theme: style::Catalog + container::Catalog,
     {
-        header: scrollable::Id,
-        body: scrollable::Id,
-        footer: Option<scrollable::Id>,
+        header: widget::Id,
+        body: widget::Id,
+        footer: Option<widget::Id>,
         columns: &'a [Column],
         rows: &'a [Row],
         on_sync: fn(scrollable::AbsoluteOffset) -> Message,
@@ -109,10 +109,10 @@ pub mod table {
         /// Sets the message that will be produced when a [`Column`] is resizing. Setting this
         /// will enable the resizing interaction.
         ///
-        /// `on_drag` will emit a message during an on-going resize. It is up to the consumer to return
+        /// `on_drag` will emit a message during an ongoing resize. It is up to the consumer to return
         /// this value for the associated column in [`Column::resize_offset`].
         ///
-        /// `on_release` is emited when the resize is finished. It is up to the consumer to apply the last
+        /// `on_release` is emitted when the resize is finished. It is up to the consumer to apply the last
         /// `on_drag` offset to the column's stored width.
         pub fn on_column_resize(
             self,
@@ -127,7 +127,7 @@ pub mod table {
         }
 
         /// Show the footer returned by [`Column::footer`].
-        pub fn footer(self, footer: scrollable::Id) -> Self {
+        pub fn footer(self, footer: widget::Id) -> Self {
             Self {
                 footer: Some(footer),
                 ..self
@@ -136,8 +136,8 @@ pub mod table {
 
         /// Sets the minimum width of table.
         ///
-        /// This is useful to use in conjuction with [`responsive`](iced_widget::responsive) to ensure
-        /// the table always fills the width of it's parent container.
+        /// This is useful to use in conjunction with [`responsive`](iced_widget::responsive) to ensure
+        /// the table always fills the width of its parent container.
         pub fn min_width(self, min_width: f32) -> Self {
             Self { min_width, ..self }
         }
@@ -183,7 +183,7 @@ pub mod table {
     impl<'a, Column, Row, Message, Theme, Renderer> From<Table<'a, Column, Row, Message, Theme>>
         for Element<'a, Message, Theme, Renderer>
     where
-        Renderer: iced_core::Renderer + 'a,
+        Renderer: iced_core::text::Renderer + 'a,
         Theme: style::Catalog + container::Catalog + scrollable::Catalog + 'a,
         Column: self::Column<'a, Message, Theme, Renderer, Row = Row>,
         Message: 'a + Clone,
@@ -369,7 +369,7 @@ pub mod table {
             .width(Length::Fill)
             .padding(cell_padding);
 
-        let spacing = Space::new(divider_width, Length::Shrink);
+        let spacing = Space::new().width(divider_width).height(Length::Shrink);
 
         row![content, spacing]
             .width(width.max(min_column_width))
@@ -399,7 +399,7 @@ pub mod table {
                 .padding(cell_padding)
                 .into()
         } else {
-            Element::from(Space::with_width(Length::Fill))
+            Element::from(space::horizontal())
         };
 
         with_divider(
@@ -450,7 +450,7 @@ pub mod table {
             .width(width)
             .into()
         } else {
-            row![content, Space::new(divider_width, Length::Shrink)]
+            row![content, Space::new().width(divider_width).height(Length::Shrink)]
                 .width(width)
                 .into()
         }
@@ -477,6 +477,6 @@ pub mod table {
 
         let remaining = min_width - total_width;
 
-        (remaining > 0.0).then(|| container(Space::with_width(remaining)).into())
+        (remaining > 0.0).then(|| container(Space::new().width(remaining)).into())
     }
 }

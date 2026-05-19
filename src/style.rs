@@ -158,12 +158,12 @@ pub(crate) mod wrapper {
         }
 
         fn layout(
-            &self,
+            &mut self,
             state: &mut iced_core::widget::Tree,
             renderer: &Renderer,
             limits: &iced_core::layout::Limits,
         ) -> iced_core::layout::Node {
-            self.content.as_widget().layout(state, renderer, limits)
+            self.content.as_widget_mut().layout(state, renderer, limits)
         }
 
         fn draw(
@@ -183,6 +183,7 @@ pub(crate) mod wrapper {
                     bounds: layout.bounds(),
                     border: appearance.border,
                     shadow: Default::default(),
+                    snap: Default::default(),
                 },
                 appearance
                     .background
@@ -216,29 +217,29 @@ pub(crate) mod wrapper {
         }
 
         fn operate(
-            &self,
+            &mut self,
             state: &mut iced_core::widget::Tree,
             layout: iced_core::Layout<'_>,
             renderer: &Renderer,
             operation: &mut dyn iced_core::widget::Operation,
         ) {
             self.content
-                .as_widget()
+                .as_widget_mut()
                 .operate(state, layout, renderer, operation)
         }
 
-        fn on_event(
+        fn update(
             &mut self,
             state: &mut iced_core::widget::Tree,
-            event: iced_core::Event,
+            event: &iced_core::Event,
             layout: iced_core::Layout<'_>,
             cursor: Cursor,
             renderer: &Renderer,
             clipboard: &mut dyn iced_core::Clipboard,
             shell: &mut iced_core::Shell<'_, Message>,
             viewport: &iced_core::Rectangle,
-        ) -> iced_core::event::Status {
-            self.content.as_widget_mut().on_event(
+        ) {
+            self.content.as_widget_mut().update(
                 state, event, layout, cursor, renderer, clipboard, shell, viewport,
             )
         }
@@ -259,13 +260,14 @@ pub(crate) mod wrapper {
         fn overlay<'b>(
             &'b mut self,
             state: &'b mut iced_core::widget::Tree,
-            layout: iced_core::Layout<'_>,
+            layout: iced_core::Layout<'b>,
             renderer: &Renderer,
+            viewport: &iced_core::Rectangle,
             translation: Vector,
         ) -> Option<iced_core::overlay::Element<'b, Message, Theme, Renderer>> {
             self.content
                 .as_widget_mut()
-                .overlay(state, layout, renderer, translation)
+                .overlay(state, layout, renderer, viewport, translation)
         }
     }
 
