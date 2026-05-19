@@ -1281,7 +1281,7 @@ dependencies = [
 
 [[package]]
 name = "iced_table"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "iced_core",
  "iced_widget",
